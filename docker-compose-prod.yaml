@@ -1,0 +1,45 @@
+version: '3'
+
+services:
+  backend:
+    container_name: event-matching-service-backend
+    build:
+      context: event-matching-service-backend
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 5600
+    ports:
+      - "5600:5600"
+    depends_on:
+      - dynamodb-local
+    environment:
+      # secretsで定義すると下記の場所にファイルが作成される
+      JWT_SECRET_KEY_PATH: /run/secrets/jwt_secret_key
+    secrets:
+      - jwt_secret_key
+
+  frontend:
+    container_name: event-matching-service-frontend
+    build:
+      context: event-matching-service-frontend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  dynamodb-local:
+    container_name: dynamodb-local
+    image: amazon/dynamodb-local:latest
+    user: root
+    command: -jar DynamoDBLocal.jar -sharedDb -dbPath /data
+    volumes:
+      - dynamodb-data:/data
+    ports:
+      - 8000:8000
+
+volumes:
+  dynamodb-data:
+
+secrets:
+  jwt_secret_key:
+    file: secret-keys/jwt-secret.key
